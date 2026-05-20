@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c0a09" />
+<title>Zähler</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0c0a09;
+    color: #f5f5f4;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+  }
+  .container {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .card {
+    width: 100%;
+    max-width: 24rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: #78716c;
+    margin-bottom: 2rem;
+  }
+  .display {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 9999px;
+    background: #1c1917;
+    border: 1px solid #292524;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+    cursor: pointer;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
+  }
+  .display:active { transform: scale(0.95); }
+  .display .number {
+    font-size: 6rem;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    transition: all 0.15s;
+  }
+  .display .number.pulse {
+    transform: scale(1.1);
+    color: #fb923c;
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s, background 0.15s;
+  }
+  button:active { transform: scale(0.97); }
+  .btn-primary {
+    width: 100%;
+    background: #f97316;
+    color: #0c0a09;
+    font-weight: 600;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 1.125rem;
+    box-shadow: 0 10px 25px -5px rgba(249,115,22,0.2);
+    margin-bottom: 0.75rem;
+  }
+  .btn-primary:hover { background: #fb923c; }
+  .btn-primary:active { background: #ea580c; transform: scale(0.98); }
+  .secondary-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .btn-secondary {
+    background: #1c1917;
+    border: 1px solid #292524;
+    color: #d6d3d1;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .btn-secondary:hover:not(:disabled) { background: #292524; }
+  .btn-secondary:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .hint {
+    font-size: 0.6875rem;
+    color: #57534e;
+    margin-top: 2rem;
+    text-align: center;
+    line-height: 1.5;
+  }
+  svg { width: 1rem; height: 1rem; }
+  .btn-primary svg { width: 1.5rem; height: 1.5rem; stroke-width: 3; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <p class="label">Zähler</p>
+
+      <button class="display" id="display" aria-label="Hochzählen">
+        <span class="number" id="number">0</span>
+      </button>
+
+      <button class="btn-primary" id="btn-plus">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Hochzählen</span>
+      </button>
+
+      <div class="secondary-row">
+        <button class="btn-secondary" id="btn-minus" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+          <span>Minus 1</span>
+        </button>
+        <button class="btn-secondary" id="btn-reset" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>Zurücksetzen</span>
+        </button>
+      </div>
+
+      <p class="hint">Der Wert wird automatisch im Browser gespeichert<br/>und bleibt zwischen Sitzungen erhalten.</p>
+    </div>
+  </div>
+
+<script>
+  const STORAGE_KEY = "zaehler:wert";
+  const numberEl = document.getElementById("number");
+  const btnPlus = document.getElementById("btn-plus");
+  const btnMinus = document.getElementById("btn-minus");
+  const btnReset = document.getElementById("btn-reset");
+  const display = document.getElementById("display");
+
+  let count = 0;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved !== null) count = parseInt(saved, 10) || 0;
+  } catch (e) {}
+
+  function render() {
+    numberEl.textContent = count;
+    btnMinus.disabled = count === 0;
+    btnReset.disabled = count === 0;
+    try { localStorage.setItem(STORAGE_KEY, String(count)); } catch (e) {}
+  }
+
+  function pulse() {
+    numberEl.classList.add("pulse");
+    setTimeout(() => numberEl.classList.remove("pulse"), 150);
+  }
+
+  function plus() { count++; render(); pulse(); }
+  function minus() { if (count > 0) { count--; render(); pulse(); } }
+  function reset() { if (count !== 0) { count = 0; render(); pulse(); } }
+
+  btnPlus.addEventListener("click", plus);
+  display.addEventListener("click", plus);
+  btnMinus.addEventListener("click", minus);
+  btnReset.addEventListener("click", reset);
+
+  render();
+</script>
+</body>
+</html>
